@@ -2,6 +2,7 @@ export type ModelType = 'openai:gpt-4o-mini' | 'openai:gpt-4.1-mini' | 'openai:g
 export type PromptType = 'generative' | 'reasoning';
 export type OutputFormat = 'markdown' | 'json';
 export type OutputDestination = 'clipboard' | 'file';
+export type PromptFlavor = 'detailed' | 'compact';
 export interface RefinerConfig {
     defaultModel: ModelType;
     defaultType: PromptType;

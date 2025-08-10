@@ -1,6 +1,6 @@
-import { OutputFormat } from '../utils/config';
+import { OutputFormat, PromptFlavor } from '../utils/config';
 
-export interface ReasoningPromptData {
+export interface ReasoningDetailedPromptData {
   originalPrompt: string;
   goal: string;
   responseFormat: string;
@@ -22,14 +22,32 @@ export interface ReasoningPromptData {
   };
 }
 
-export function buildReasoningTemplate(data: ReasoningPromptData, format: OutputFormat): string {
+export interface ReasoningCompactPromptData {
+  originalPrompt: string;
+  problemStatement: string;
+  knownInformation: string;
+  hardConstraints: string[];
+  keyAssumptions?: string[];
+  reasoningFramework: {
+    describe: string;
+    isolate: string;
+    sequence: string;
+    test: string;
+  };
+  outputFormat: string;
+}
+
+export function buildReasoningTemplate(data: ReasoningDetailedPromptData | ReasoningCompactPromptData, format: OutputFormat, flavor: PromptFlavor = 'detailed'): string {
+  if (flavor === 'compact') {
+    return buildReasoningCompactMarkdown(data as ReasoningCompactPromptData);
+  }
   if (format === 'json') {
     return buildReasoningJSON(data);
   }
-  return buildReasoningMarkdown(data);
+  return buildReasoningMarkdown(data as ReasoningDetailedPromptData);
 }
 
-function buildReasoningMarkdown(data: ReasoningPromptData): string {
+function buildReasoningMarkdown(data: ReasoningDetailedPromptData): string {
   const stripLeadingListMarker = (text: string): string => {
     // Remove leading numbering or bullet markers like "1.", "1)", "-", "*", "•"
     return text.replace(/^\s*(?:\d+[\.)]|[-*•])\s+/, '');
@@ -89,7 +107,17 @@ ${data.orderedInstructions.priority3
   return template;
 }
 
-function buildReasoningJSON(data: ReasoningPromptData): string {
+function buildReasoningJSON(data: ReasoningDetailedPromptData | ReasoningCompactPromptData): string {
+  const isDetailed = 'goal' in data;
+  
+  if (isDetailed) {
+    return buildReasoningDetailedJSON(data as ReasoningDetailedPromptData);
+  } else {
+    return buildReasoningCompactJSON(data as ReasoningCompactPromptData);
+  }
+}
+
+function buildReasoningDetailedJSON(data: ReasoningDetailedPromptData): string {
   const jsonStructure = {
     prompt_type: "reasoning",
     structure: {
@@ -121,7 +149,57 @@ function buildReasoningJSON(data: ReasoningPromptData): string {
   return JSON.stringify(jsonStructure, null, 2);
 }
 
-export const REASONING_ANALYSIS_PROMPT = `You are an expert AI prompt engineer. Your task is to analyze an unstructured prompt and transform it into a comprehensive, well-structured reasoning prompt optimized for AI model-to-model communication for building features and products.
+function buildReasoningCompactJSON(data: ReasoningCompactPromptData): string {
+  const jsonStructure = {
+    prompt_type: "reasoning_compact",
+    structure: {
+      problem_statement: data.problemStatement,
+      known_information: data.knownInformation,
+      hard_constraints: data.hardConstraints,
+      ...(data.keyAssumptions && data.keyAssumptions.length > 0 && { key_assumptions: data.keyAssumptions }),
+      reasoning_framework: {
+        describe: data.reasoningFramework.describe,
+        isolate: data.reasoningFramework.isolate,
+        sequence: data.reasoningFramework.sequence,
+        test: data.reasoningFramework.test
+      },
+      output_format: data.outputFormat
+    },
+    optimized_for: "model_to_model_communication",
+    reasoning_style: "compact_structured"
+  };
+
+  return JSON.stringify(jsonStructure, null, 2);
+}
+
+function buildReasoningCompactMarkdown(data: ReasoningCompactPromptData): string {
+  let compact = `# Problem Statement
+${data.problemStatement}
+
+# Known Information & Constraints
+## Data / Code Under Analysis
+${data.knownInformation}
+
+## Hard Constraints
+- ${data.hardConstraints.join('\n- ')}`;
+
+  if (data.keyAssumptions && data.keyAssumptions.length > 0) {
+    compact += `\n\n## Key Assumptions\n- ${data.keyAssumptions.join('\n- ')}`;
+  }
+
+  compact += `\n\n# Chain of Thought / Reasoning Framework (DESCRIBE → ISOLATE → SEQUENCE → TEST)
+1. DESCRIBE: ${data.reasoningFramework.describe}
+2. ISOLATE: ${data.reasoningFramework.isolate}
+3. SEQUENCE: ${data.reasoningFramework.sequence}
+4. TEST: ${data.reasoningFramework.test}
+
+# Required Output Format
+${data.outputFormat}`;
+
+  return compact;
+}
+
+export const REASONING_DETAILED_ANALYSIS_PROMPT = `You are an expert AI prompt engineer. Your task is to analyze an unstructured prompt and transform it into a comprehensive, well-structured reasoning prompt optimized for AI model-to-model communication for building features and products.
 
 CRITICAL: Generate extremely detailed, comprehensive content. Each section should be thorough and extensive. Avoid brief, superficial responses. The user expects 2-3x more detail than typical AI responses.
 
@@ -153,3 +231,33 @@ Return a JSON object with these fields, ensuring each field contains comprehensi
 - rankings: { security: string (detailed security considerations and strategies), performance: string (comprehensive performance requirements and optimizations), userExperience: string (detailed UX requirements and guidelines), maintainability: string (extensive maintainability strategies and best practices) }
 
 REQUIREMENT: Make each field extensively detailed and comprehensive. Prioritize thoroughness and depth over brevity. Focus on making this prompt perfect for logical, step-by-step feature building with clear priorities, detailed constraints, and comprehensive implementation guidance.`;
+
+export const REASONING_COMPACT_ANALYSIS_PROMPT = `You are an expert AI prompt engineer. Your task is to analyze an unstructured prompt and transform it into a focused, compact reasoning prompt optimized for quick, structured AI model-to-model problem-solving communication.
+
+CRITICAL: Generate concise, actionable content. Focus on essential elements for structured reasoning. Avoid verbose descriptions. The user expects focused, practical guidance that enables clear logical thinking.
+
+The user will provide you with a raw prompt. You need to extract and structure it according to this compact reasoning format:
+
+**Problem Statement**: Clear, specific problem or challenge to solve (4-5 sentences maximum, keep it concise)
+**Known Information**: Key data, code, or context relevant to the problem (brief summary)
+**Hard Constraints**: 3-5 non-negotiable limitations or requirements
+**Key Assumptions** (Optional): Important assumptions being made (if applicable)
+**Reasoning Framework**: Structure using DESCRIBE → ISOLATE → SEQUENCE → TEST:
+  - DESCRIBE: What needs to be understood or analyzed
+  - ISOLATE: What specific aspect to focus on
+  - SEQUENCE: What steps or order to follow  
+  - TEST: How to validate or verify the solution
+**Output Format**: Specific format requirements for the final answer
+
+Return a JSON object with these fields:
+- problemStatement: string (clear, specific problem definition)
+- knownInformation: string (relevant data/context summary)
+- hardConstraints: string[] (array of 3-5 non-negotiable constraints)
+- keyAssumptions: string[] (optional, key assumptions if relevant)
+- reasoningFramework: object with describe, isolate, sequence, test fields (each a concise string)
+- outputFormat: string (specific format requirements)
+
+REQUIREMENT: Keep all content concise and focused on enabling clear, structured reasoning. Omit optional fields if they don't add value to the reasoning process. Focus on actionable guidance that supports logical problem-solving.`;
+
+// Maintain backward compatibility
+export const REASONING_ANALYSIS_PROMPT = REASONING_DETAILED_ANALYSIS_PROMPT;
