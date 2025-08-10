@@ -1,5 +1,5 @@
 import { Args, Command, Flags } from '@oclif/core';
-import { config, ModelType, PromptType, OutputFormat, OutputDestination, PromptFlavor } from '../utils/config';
+import { config, ModelType, PromptType, OutputFormat, OutputDestination, PromptFlavor, getPromptTypeForModel } from '../utils/config';
 import { promptAnalyzer, AnalysisResult } from '../services/prompt-analyzer';
 import { outputFormatter } from '../services/output-formatter';
 import { reviewUI } from '../ui/review';
@@ -70,8 +70,9 @@ export default class Refine extends Command {
       }
 
       // Get configuration with defaults and flag overrides
-      const promptType = (flags.type as PromptType) || config.get('defaultType');
       const modelType = (flags.model as ModelType) || config.get('defaultModel');
+      // If user did not pass a type, infer from selected model
+      const promptType = (flags.type as PromptType) || getPromptTypeForModel(modelType);
       const outputFormat = (flags.format as OutputFormat) || config.get('defaultFormat');
       const outputDestination = (flags.output as OutputDestination) || config.get('defaultOutput');
       const flavor: PromptFlavor = (flags.flavor as PromptFlavor) || 'detailed';

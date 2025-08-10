@@ -35,7 +35,7 @@ export interface RefinerConfig {
 
 const defaults: RefinerConfig = {
   defaultModel: 'openai:gpt-4o-mini',
-  defaultType: 'generative',
+  defaultType: 'reasoning',
   defaultFormat: 'markdown',
   defaultOutput: 'clipboard',
   temperature: {
@@ -92,3 +92,20 @@ class ConfigManager {
 }
 
 export const config = new ConfigManager();
+
+// Helper to infer the ideal prompt type for a given model
+export function getPromptTypeForModel(model: ModelType): PromptType {
+  // Assumptions based on current supported models in this CLI
+  // - openai:gpt-4o-mini → optimized for reasoning-style prompts
+  // - openai:gpt-4.1-mini → better suited for generative-style prompts
+  // - openai:gpt-5-mini → treat as reasoning-oriented by default
+  switch (model) {
+    case 'openai:gpt-4o-mini':
+      return 'reasoning';
+    case 'openai:gpt-4.1-mini':
+      return 'generative';
+    case 'openai:gpt-5-mini':
+    default:
+      return 'reasoning';
+  }
+}
