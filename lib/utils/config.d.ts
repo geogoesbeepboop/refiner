@@ -26,4 +26,5 @@ declare class ConfigManager {
     getTemperature(type: PromptType): number;
 }
 export declare const config: ConfigManager;
+export declare function getPromptTypeForModel(model: ModelType): PromptType;
 export {};
