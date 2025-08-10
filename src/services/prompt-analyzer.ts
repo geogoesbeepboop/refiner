@@ -1,15 +1,19 @@
 import { getAIClient } from './ai-client';
 import { parseAIResponse } from '../utils/json-parser';
-import { ModelType, PromptType, OutputFormat } from '../utils/config';
+import { ModelType, PromptType, OutputFormat, PromptFlavor } from '../utils/config';
 import { 
   buildGenerativeTemplate, 
-  GenerativePromptData, 
-  GENERATIVE_ANALYSIS_PROMPT 
+  GenerativeDetailedPromptData, 
+  GenerativeCompactPromptData,
+  GENERATIVE_DETAILED_ANALYSIS_PROMPT,
+  GENERATIVE_COMPACT_ANALYSIS_PROMPT
 } from '../templates/generative';
 import { 
   buildReasoningTemplate, 
-  ReasoningPromptData, 
-  REASONING_ANALYSIS_PROMPT 
+  ReasoningDetailedPromptData, 
+  ReasoningCompactPromptData,
+  REASONING_DETAILED_ANALYSIS_PROMPT,
+  REASONING_COMPACT_ANALYSIS_PROMPT
 } from '../templates/reasoning';
 
 export interface AnalysisResult {
@@ -17,6 +21,7 @@ export interface AnalysisResult {
   structuredPrompt: string;
   promptType: PromptType;
   outputFormat: OutputFormat;
+  flavor: PromptFlavor;
 }
 
 export class PromptAnalyzer {
@@ -24,13 +29,14 @@ export class PromptAnalyzer {
     originalPrompt: string,
     promptType: PromptType,
     modelType: ModelType,
-    outputFormat: OutputFormat
+    outputFormat: OutputFormat,
+    flavor: PromptFlavor
   ): Promise<AnalysisResult> {
     try {
       if (promptType === 'generative') {
-        return await this.analyzeGenerativePrompt(originalPrompt, modelType, outputFormat);
+        return await this.analyzeGenerativePrompt(originalPrompt, modelType, outputFormat, flavor);
       } else {
-        return await this.analyzeReasoningPrompt(originalPrompt, modelType, outputFormat);
+        return await this.analyzeReasoningPrompt(originalPrompt, modelType, outputFormat, flavor);
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -43,29 +49,45 @@ export class PromptAnalyzer {
   private async analyzeGenerativePrompt(
     originalPrompt: string,
     modelType: ModelType,
-    outputFormat: OutputFormat
+    outputFormat: OutputFormat,
+    flavor: PromptFlavor
   ): Promise<AnalysisResult> {
+    const analysisPrompt = flavor === 'compact' 
+      ? GENERATIVE_COMPACT_ANALYSIS_PROMPT 
+      : GENERATIVE_DETAILED_ANALYSIS_PROMPT;
+
     const response = await getAIClient().analyzePrompt(
       originalPrompt,
       'generative',
       modelType,
-      GENERATIVE_ANALYSIS_PROMPT
+      analysisPrompt
     );
 
     try {
-      const analysisData = parseAIResponse(response) as Omit<GenerativePromptData, 'originalPrompt'>;
-      const promptData: GenerativePromptData = {
-        originalPrompt,
-        ...analysisData
-      };
+      let promptData: GenerativeDetailedPromptData | GenerativeCompactPromptData;
+      
+      if (flavor === 'compact') {
+        const analysisData = parseAIResponse(response) as Omit<GenerativeCompactPromptData, 'originalPrompt'>;
+        promptData = {
+          originalPrompt,
+          ...analysisData
+        } as GenerativeCompactPromptData;
+      } else {
+        const analysisData = parseAIResponse(response) as Omit<GenerativeDetailedPromptData, 'originalPrompt'>;
+        promptData = {
+          originalPrompt,
+          ...analysisData
+        } as GenerativeDetailedPromptData;
+      }
 
-      const structuredPrompt = buildGenerativeTemplate(promptData, outputFormat);
+      const structuredPrompt = buildGenerativeTemplate(promptData, outputFormat, flavor);
 
       return {
         originalPrompt,
         structuredPrompt,
         promptType: 'generative',
-        outputFormat
+        outputFormat,
+        flavor
       };
     } catch (parseError) {
       console.error('Failed to parse AI response:', response);
@@ -76,29 +98,45 @@ export class PromptAnalyzer {
   private async analyzeReasoningPrompt(
     originalPrompt: string,
     modelType: ModelType,
-    outputFormat: OutputFormat
+    outputFormat: OutputFormat,
+    flavor: PromptFlavor
   ): Promise<AnalysisResult> {
+    const analysisPrompt = flavor === 'compact' 
+      ? REASONING_COMPACT_ANALYSIS_PROMPT 
+      : REASONING_DETAILED_ANALYSIS_PROMPT;
+
     const response = await getAIClient().analyzePrompt(
       originalPrompt,
       'reasoning',
       modelType,
-      REASONING_ANALYSIS_PROMPT
+      analysisPrompt
     );
 
     try {
-      const analysisData = parseAIResponse(response) as Omit<ReasoningPromptData, 'originalPrompt'>;
-      const promptData: ReasoningPromptData = {
-        originalPrompt,
-        ...analysisData
-      };
+      let promptData: ReasoningDetailedPromptData | ReasoningCompactPromptData;
+      
+      if (flavor === 'compact') {
+        const analysisData = parseAIResponse(response) as Omit<ReasoningCompactPromptData, 'originalPrompt'>;
+        promptData = {
+          originalPrompt,
+          ...analysisData
+        } as ReasoningCompactPromptData;
+      } else {
+        const analysisData = parseAIResponse(response) as Omit<ReasoningDetailedPromptData, 'originalPrompt'>;
+        promptData = {
+          originalPrompt,
+          ...analysisData
+        } as ReasoningDetailedPromptData;
+      }
 
-      const structuredPrompt = buildReasoningTemplate(promptData, outputFormat);
+      const structuredPrompt = buildReasoningTemplate(promptData, outputFormat, flavor);
 
       return {
         originalPrompt,
         structuredPrompt,
         promptType: 'reasoning',
-        outputFormat
+        outputFormat,
+        flavor
       };
     } catch (parseError) {
       console.error('Failed to parse AI response:', response);
@@ -113,8 +151,8 @@ export class PromptAnalyzer {
   ): Promise<AnalysisResult> {
     try {
       const systemPrompt = result.promptType === 'generative' 
-        ? GENERATIVE_ANALYSIS_PROMPT 
-        : REASONING_ANALYSIS_PROMPT;
+        ? (result.flavor === 'compact' ? GENERATIVE_COMPACT_ANALYSIS_PROMPT : GENERATIVE_DETAILED_ANALYSIS_PROMPT)
+        : (result.flavor === 'compact' ? REASONING_COMPACT_ANALYSIS_PROMPT : REASONING_DETAILED_ANALYSIS_PROMPT);
 
       const response = await getAIClient().regenerateWithContext(
         result.originalPrompt,
@@ -129,19 +167,37 @@ export class PromptAnalyzer {
 
       try {
         if (result.promptType === 'generative') {
-          const analysisData = parseAIResponse(response) as Omit<GenerativePromptData, 'originalPrompt'>;
-          const promptData: GenerativePromptData = {
-            originalPrompt: result.originalPrompt,
-            ...analysisData
-          };
-          newStructuredPrompt = buildGenerativeTemplate(promptData, result.outputFormat);
+          if (result.flavor === 'compact') {
+            const analysisData = parseAIResponse(response) as Omit<GenerativeCompactPromptData, 'originalPrompt'>;
+            const promptData: GenerativeCompactPromptData = {
+              originalPrompt: result.originalPrompt,
+              ...analysisData
+            };
+            newStructuredPrompt = buildGenerativeTemplate(promptData, result.outputFormat, result.flavor);
+          } else {
+            const analysisData = parseAIResponse(response) as Omit<GenerativeDetailedPromptData, 'originalPrompt'>;
+            const promptData: GenerativeDetailedPromptData = {
+              originalPrompt: result.originalPrompt,
+              ...analysisData
+            };
+            newStructuredPrompt = buildGenerativeTemplate(promptData, result.outputFormat, result.flavor);
+          }
         } else {
-          const analysisData = parseAIResponse(response) as Omit<ReasoningPromptData, 'originalPrompt'>;
-          const promptData: ReasoningPromptData = {
-            originalPrompt: result.originalPrompt,
-            ...analysisData
-          };
-          newStructuredPrompt = buildReasoningTemplate(promptData, result.outputFormat);
+          if (result.flavor === 'compact') {
+            const analysisData = parseAIResponse(response) as Omit<ReasoningCompactPromptData, 'originalPrompt'>;
+            const promptData: ReasoningCompactPromptData = {
+              originalPrompt: result.originalPrompt,
+              ...analysisData
+            };
+            newStructuredPrompt = buildReasoningTemplate(promptData, result.outputFormat, result.flavor);
+          } else {
+            const analysisData = parseAIResponse(response) as Omit<ReasoningDetailedPromptData, 'originalPrompt'>;
+            const promptData: ReasoningDetailedPromptData = {
+              originalPrompt: result.originalPrompt,
+              ...analysisData
+            };
+            newStructuredPrompt = buildReasoningTemplate(promptData, result.outputFormat, result.flavor);
+          }
         }
       } catch (parseError) {
         throw new Error('Failed to parse AI response during regeneration');
