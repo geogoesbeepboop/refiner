@@ -1,5 +1,14 @@
 #!/usr/bin/env node
 
+// Alias: allow `refiner -info` or `refiner --info` to route to `refiner info`
+try {
+  const argv = process.argv.slice(2)
+  if (argv.includes('-info') || argv.includes('--info')) {
+    const filtered = argv.filter(a => a !== '-info' && a !== '--info')
+    process.argv = [process.argv[0], process.argv[1], 'info', ...filtered]
+  }
+} catch {}
+
 const { run } = require('@oclif/core')
 
 run().catch(require('@oclif/core/handle'))
