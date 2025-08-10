@@ -1,0 +1,24 @@
+{
+  "prompt_type": "generative",
+  "structure": {
+    "role_and_objective": "Develop a robust machine learning pipeline specifically designed for fraud detection.",
+    "instructions": "Create a complete machine learning pipeline that includes data collection, preprocessing, model training, evaluation, and deployment for fraud detection.",
+    "subcategories": {
+      "architecture_and_design": "Design a modular architecture that allows for easy integration of different data sources and machine learning algorithms. Include components for data ingestion, feature engineering, model training, and monitoring.",
+      "implementation_details": "Utilize Python with libraries such as Pandas for data manipulation, Scikit-learn for model training, and Flask or FastAPI for deployment. Ensure the pipeline can handle large datasets efficiently.",
+      "quality_and_testing": "Implement unit tests for each component of the pipeline. Use cross-validation techniques to evaluate model performance and monitor for overfitting. Establish metrics for fraud detection accuracy, precision, and recall."
+    },
+    "reasoning_steps": [
+      "1. Analyze the requirements for fraud detection, including understanding the types of fraud and data sources available.",
+      "2. Design the architecture of the machine learning pipeline with modular components for scalability and maintenance.",
+      "3. Implement the pipeline focusing on data quality and model performance, ensuring best practices in coding and documentation.",
+      "4. Validate the pipeline through rigorous testing and monitoring, ensuring it meets the established success criteria for fraud detection."
+    ],
+    "output_format": "JSON structure containing pipeline components and configurations.",
+    "examples": "Example data sources include transaction logs, user behavior analytics, and historical fraud cases. Example algorithms may include Random Forest, Gradient Boosting, or Neural Networks.",
+    "context": "The project aims to improve the accuracy and efficiency of fraud detection in financial transactions using machine learning techniques. The current system lacks automation and scalability.",
+    "final_instructions": "Ensure the pipeline is adaptable for future enhancements and adheres to data privacy regulations. The success criteria include a minimum accuracy of 90% and a false positive rate below 5%."
+  },
+  "optimized_for": "model_to_model_communication",
+  "creativity_level": "high"
+}

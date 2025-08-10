@@ -1,0 +1,23 @@
+{
+  "prompt_type": "generative",
+  "structure": {
+    "role_and_objective": "Design and implement a robust payment processing system that securely handles transactions.",
+    "instructions": "Develop a payment processing system that supports multiple payment methods, ensures data security, and integrates with existing financial systems.",
+    "subcategories": {
+      "architecture_and_design": "Design a microservices architecture that allows for scalability and easy integration with third-party payment gateways. Include components for transaction management, user authentication, and reporting.",
+      "implementation_details": "Use a combination of Node.js and Express for the back-end services, and PostgreSQL for the database. Ensure compliance with PCI DSS standards for handling payment data.",
+      "quality_and_testing": "Implement unit tests and integration tests for all services. Conduct security audits and performance testing to ensure reliability and security."
+    },
+    "reasoning_steps": [
+      "Analyze the requirements for different payment methods and security standards.",
+      "Design the system architecture focusing on scalability and integration capabilities.",
+      "Implement the payment processing features with a focus on secure data handling.",
+      "Test the system rigorously to ensure it meets quality and security standards."
+    ],
+    "output_format": "JSON format for API responses and transaction logs.",
+    "context": "The project aims to create a comprehensive payment solution for e-commerce platforms. It must comply with international payment regulations and be user-friendly for both consumers and merchants.",
+    "final_instructions": "Ensure the system is designed for scalability, security, and ease of integration. Success will be measured by user adoption rates and system reliability."
+  },
+  "optimized_for": "model_to_model_communication",
+  "creativity_level": "high"
+}

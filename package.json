@@ -1,0 +1,64 @@
+{
+  "name": "refiner",
+  "version": "1.0.0",
+  "description": "A CLI tool that transforms unstructured prompts into well-structured, AI-optimized prompts for building features and products",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "bin": {
+    "refiner": "./bin/run"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "npm run build && ./bin/dev",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepack": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geogoesbeepboop/refiner.git"
+  },
+  "keywords": [
+    "cli",
+    "prompt",
+    "ai",
+    "engineering",
+    "development",
+    "structured",
+    "openai"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/geogoesbeepboop/refiner/issues"
+  },
+  "homepage": "https://github.com/geogoesbeepboop/refiner#readme",
+  "files": [
+    "/bin",
+    "/lib",
+    "/npm-shrinkwrap.json",
+    "/oclif.manifest.json"
+  ],
+  "oclif": {
+    "bin": "refiner",
+    "dirname": "refiner",
+    "commands": "./lib/commands",
+    "topicSeparator": " "
+  },
+  "dependencies": {
+    "@oclif/core": "^4.5.2",
+    "@oclif/plugin-help": "^6.2.32",
+    "chalk": "^5.5.0",
+    "clipboardy": "^4.0.0",
+    "conf": "^14.0.0",
+    "dotenv": "^17.2.1",
+    "inquirer": "^12.9.1",
+    "openai": "^5.12.2",
+    "ora": "^8.2.0",
+    "typescript": "^5.9.2"
+  },
+  "devDependencies": {
+    "@types/conf": "^2.1.0",
+    "@types/node": "^24.2.1"
+  }
+}
