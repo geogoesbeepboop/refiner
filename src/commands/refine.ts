@@ -1,5 +1,5 @@
 import { Args, Command, Flags } from '@oclif/core';
-import { config, ModelType, PromptType, OutputFormat, OutputDestination } from '../utils/config';
+import { config, ModelType, PromptType, OutputFormat, OutputDestination, PromptFlavor } from '../utils/config';
 import { promptAnalyzer, AnalysisResult } from '../services/prompt-analyzer';
 import { outputFormatter } from '../services/output-formatter';
 import { reviewUI } from '../ui/review';
@@ -49,6 +49,12 @@ export default class Refine extends Command {
       description: 'Output destination',
       options: ['clipboard', 'file'],
       required: false
+    }),
+    flavor: Flags.string({
+      char: 'l',
+      description: 'Prompt flavor (detailed or compact)',
+      options: ['detailed', 'compact'],
+      required: false
     })
   };
 
@@ -68,9 +74,10 @@ export default class Refine extends Command {
       const modelType = (flags.model as ModelType) || config.get('defaultModel');
       const outputFormat = (flags.format as OutputFormat) || config.get('defaultFormat');
       const outputDestination = (flags.output as OutputDestination) || config.get('defaultOutput');
+      const flavor: PromptFlavor = (flags.flavor as PromptFlavor) || 'detailed';
 
       // Show configuration
-      this.showConfiguration(promptType, modelType, outputFormat, outputDestination);
+      this.showConfiguration(promptType, modelType, outputFormat, outputDestination, flavor);
 
       // Analyze and structure the prompt
       const loader = createAnalysisLoader();
@@ -78,7 +85,7 @@ export default class Refine extends Command {
 
       let result: AnalysisResult;
       try {
-        result = await promptAnalyzer.analyzeAndStructure(prompt, promptType, modelType, outputFormat);
+        result = await promptAnalyzer.analyzeAndStructure(prompt, promptType, modelType, outputFormat, flavor);
         loader.completeAll('🎉 Analysis complete!');
       } catch (error) {
         loader.failStage(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -127,13 +134,15 @@ export default class Refine extends Command {
     promptType: PromptType,
     modelType: ModelType,
     outputFormat: OutputFormat,
-    outputDestination: OutputDestination
+    outputDestination: OutputDestination,
+    flavor: PromptFlavor
   ): void {
     console.log(chalk.blue('\n⚙️  Configuration:'));
     console.log(chalk.gray(`   Type: ${promptType}`));
     console.log(chalk.gray(`   Model: ${modelType}`));
     console.log(chalk.gray(`   Format: ${outputFormat}`));
     console.log(chalk.gray(`   Output: ${outputDestination}`));
+    console.log(chalk.gray(`   Flavor: ${flavor}`));
     console.log();
   }
 
