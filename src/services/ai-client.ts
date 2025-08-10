@@ -8,7 +8,7 @@ export class AIClient {
   constructor() {
     const apiKey = config.getApiKey();
     if (!apiKey) {
-      throw new Error('OpenAI API key not found. Please set OPENAI_API_KEY environment variable or configure it with: refiner config set apiKey <your-api-key>');
+      throw new Error('OpenAI API key not found. Set OPENAI_API_KEY in your environment or run "refiner config" to save your API key.');
     }
     
     try {
