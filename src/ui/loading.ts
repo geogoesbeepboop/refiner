@@ -132,6 +132,76 @@ export function createAnalysisLoader(): MultiStageLoader {
   ]);
 }
 
+export function createStreamingAnalysisLoader(): MultiStageLoader {
+  return new MultiStageLoader([
+    '🔗 Connecting to AI model...',
+    '🤔 Processing with extended thinking...',
+    '🌐 Searching web for context...',
+    '📝 Generating structured response...',
+    '✅ Stream complete'
+  ]);
+}
+
+export class StreamingLoader {
+  private spinner: Ora;
+  private thinkingContent = '';
+  private showThinking: boolean;
+
+  constructor(showThinking: boolean = false) {
+    this.showThinking = showThinking;
+    this.spinner = ora({
+      spinner: 'dots',
+      color: 'cyan'
+    });
+  }
+
+  startConnecting(): void {
+    this.spinner.start('🔗 Connecting to Claude...');
+  }
+
+  startThinking(): void {
+    this.spinner.text = '🤔 Processing with extended thinking...';
+  }
+
+  onThinkingDelta(delta: string): void {
+    if (this.showThinking) {
+      this.thinkingContent += delta;
+      // For now, just update the spinner text with a truncated thinking preview
+      const preview = this.thinkingContent.slice(-50).replace(/\n/g, ' ');
+      this.spinner.text = `🤔 Thinking: ${preview}...`;
+    }
+  }
+
+  startWebSearch(query: string): void {
+    this.spinner.text = `🌐 Searching web for "${query}"...`;
+  }
+
+  onWebSearchResults(resultCount: number): void {
+    this.spinner.text = `🌐 Found ${resultCount} search results...`;
+  }
+
+  startResponse(): void {
+    this.spinner.text = '📝 Generating structured response...';
+  }
+
+  onResponseDelta(delta: string): void {
+    // Could show response streaming preview if desired
+    // For now, keep the same message
+  }
+
+  complete(finalMessage?: string): void {
+    this.spinner.succeed(finalMessage || '✅ Stream complete');
+  }
+
+  fail(errorMessage: string): void {
+    this.spinner.fail(errorMessage);
+  }
+
+  getThinkingContent(): string {
+    return this.thinkingContent;
+  }
+}
+
 export function createSimpleLoader(message?: string): LoadingUI {
   return new LoadingUI();
 }

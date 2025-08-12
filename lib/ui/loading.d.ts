@@ -23,4 +23,21 @@ export declare class MultiStageLoader {
     completeAll(finalMessage?: string): void;
 }
 export declare function createAnalysisLoader(): MultiStageLoader;
+export declare function createStreamingAnalysisLoader(): MultiStageLoader;
+export declare class StreamingLoader {
+    private spinner;
+    private thinkingContent;
+    private showThinking;
+    constructor(showThinking?: boolean);
+    startConnecting(): void;
+    startThinking(): void;
+    onThinkingDelta(delta: string): void;
+    startWebSearch(query: string): void;
+    onWebSearchResults(resultCount: number): void;
+    startResponse(): void;
+    onResponseDelta(delta: string): void;
+    complete(finalMessage?: string): void;
+    fail(errorMessage: string): void;
+    getThinkingContent(): string;
+}
 export declare function createSimpleLoader(message?: string): LoadingUI;

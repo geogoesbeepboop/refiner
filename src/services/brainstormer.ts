@@ -1,5 +1,5 @@
 import { ModelType, PromptType } from '../utils/config';
-import { getAIClient } from './ai-client';
+import { AIClientFactory } from './ai-client-factory';
 import { parseAIResponse } from '../utils/json-parser';
 
 export interface QAItem {
@@ -42,7 +42,7 @@ OUTPUT STRICT JSON with fields:
       .map((qa, i) => `${i + 1}. Q: ${qa.question}\n   A: ${qa.answer}`)
       .join('\n') || '(none yet)'}\n\nPROMPT_TYPE: ${promptType}`;
 
-    const response = await getAIClient().analyzePrompt(
+    const response = await AIClientFactory.analyzePrompt(
       originalPrompt,
       // Treat this as reasoning regardless, since it's interviewing
       'reasoning',
@@ -93,7 +93,7 @@ OUTPUT JSON ONLY with field: { "rawPrompt": string }`;
       .map((qa, i) => `${i + 1}. Q: ${qa.question}\n   A: ${qa.answer}`)
       .join('\n') || '(none)'}\n\nPROMPT_TYPE: ${promptType}`;
 
-    const response = await getAIClient().analyzePrompt(
+    const response = await AIClientFactory.analyzePrompt(
       originalPrompt,
       'reasoning',
       modelType,

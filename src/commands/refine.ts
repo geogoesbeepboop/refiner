@@ -35,7 +35,7 @@ export default class Refine extends Command {
     model: Flags.string({
       char: 'm', 
       description: 'AI model to use',
-      options: ['openai:gpt-4o-mini', 'openai:gpt-4.1-mini', 'openai:gpt-5-mini'],
+      options: ['claude:sonnet-4-0', 'openai:gpt-4o-mini', 'openai:gpt-4.1-mini', 'openai:gpt-5-mini'],
       required: false
     }),
     format: Flags.string({
@@ -55,6 +55,14 @@ export default class Refine extends Command {
       description: 'Prompt flavor (detailed or compact)',
       options: ['detailed', 'compact'],
       required: false
+    }),
+    'show-thinking': Flags.boolean({
+      description: 'Show extended thinking process during generation (Claude only)',
+      default: false
+    }),
+    'no-stream': Flags.boolean({
+      description: 'Disable streaming for traditional request/response (Claude only)',
+      default: false
     })
   };
 
@@ -76,9 +84,11 @@ export default class Refine extends Command {
       const outputFormat = (flags.format as OutputFormat) || config.get('defaultFormat');
       const outputDestination = (flags.output as OutputDestination) || config.get('defaultOutput');
       const flavor: PromptFlavor = (flags.flavor as PromptFlavor) || 'detailed';
+      const showThinking = flags['show-thinking'] || (modelType === 'claude:sonnet-4-0' ? config.get('streaming')?.showThinking : false);
+      const enableStreaming = !flags['no-stream'] && (modelType === 'claude:sonnet-4-0' ? config.get('streaming')?.enabled : false);
 
       // Show configuration
-      this.showConfiguration(promptType, modelType, outputFormat, outputDestination, flavor);
+      this.showConfiguration(promptType, modelType, outputFormat, outputDestination, flavor, showThinking, enableStreaming);
 
       // Analyze and structure the prompt
       const loader = createAnalysisLoader();
@@ -86,7 +96,10 @@ export default class Refine extends Command {
 
       let result: AnalysisResult;
       try {
-        result = await promptAnalyzer.analyzeAndStructure(prompt, promptType, modelType, outputFormat, flavor);
+        result = await promptAnalyzer.analyzeAndStructure(prompt, promptType, modelType, outputFormat, flavor, {
+          enableStreaming,
+          showThinking
+        });
         loader.completeAll('🎉 Analysis complete!');
       } catch (error) {
         loader.failStage(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -136,7 +149,9 @@ export default class Refine extends Command {
     modelType: ModelType,
     outputFormat: OutputFormat,
     outputDestination: OutputDestination,
-    flavor: PromptFlavor
+    flavor: PromptFlavor,
+    showThinking?: boolean,
+    enableStreaming?: boolean
   ): void {
     console.log(chalk.blue('\n⚙️  Configuration:'));
     console.log(chalk.gray(`   Type: ${promptType}`));
@@ -144,6 +159,12 @@ export default class Refine extends Command {
     console.log(chalk.gray(`   Format: ${outputFormat}`));
     console.log(chalk.gray(`   Output: ${outputDestination}`));
     console.log(chalk.gray(`   Flavor: ${flavor}`));
+    
+    if (modelType === 'claude:sonnet-4-0') {
+      console.log(chalk.gray(`   Streaming: ${enableStreaming ? 'enabled' : 'disabled'}`));
+      console.log(chalk.gray(`   Show thinking: ${showThinking ? 'yes' : 'no'}`));
+    }
+    
     console.log();
   }
 
