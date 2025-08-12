@@ -15,7 +15,7 @@ import { config as dotenvConfig } from 'dotenv';
   }
 })();
 
-export type ModelType = 'openai:gpt-4o-mini' | 'openai:gpt-4.1-mini' | 'openai:gpt-5-mini';
+export type ModelType = 'openai:gpt-4o-mini' | 'openai:gpt-4.1-mini' | 'openai:gpt-5-mini' | 'claude:sonnet-4-0';
 export type PromptType = 'generative' | 'reasoning';
 export type OutputFormat = 'markdown' | 'json';
 export type OutputDestination = 'clipboard' | 'file';
@@ -27,9 +27,15 @@ export interface RefinerConfig {
   defaultFormat: OutputFormat;
   defaultOutput: OutputDestination;
   apiKey?: string;
+  claudeApiKey?: string;
   temperature: {
     generative: number;
     reasoning: number;
+  };
+  streaming: {
+    enabled: boolean;
+    showThinking: boolean;
+    thinkingBudgetTokens: number;
   };
 }
 
@@ -41,6 +47,11 @@ const defaults: RefinerConfig = {
   temperature: {
     generative: 0.7,
     reasoning: 0.2
+  },
+  streaming: {
+    enabled: true,
+    showThinking: false,
+    thinkingBudgetTokens: 10000
   }
 };
 
@@ -69,7 +80,9 @@ class ConfigManager {
       defaultFormat: this.get('defaultFormat'),
       defaultOutput: this.get('defaultOutput'),
       apiKey: this.get('apiKey'),
-      temperature: this.get('temperature')
+      claudeApiKey: this.get('claudeApiKey'),
+      temperature: this.get('temperature'),
+      streaming: this.get('streaming')
     };
   }
 
@@ -83,6 +96,14 @@ class ConfigManager {
 
   setApiKey(apiKey: string): void {
     this.set('apiKey', apiKey);
+  }
+
+  getClaudeApiKey(): string | undefined {
+    return this.get('claudeApiKey') || process.env.CLAUDE_API_KEY;
+  }
+
+  setClaudeApiKey(apiKey: string): void {
+    this.set('claudeApiKey', apiKey);
   }
 
   getTemperature(type: PromptType): number {
@@ -99,13 +120,31 @@ export function getPromptTypeForModel(model: ModelType): PromptType {
   // - openai:gpt-4o-mini → optimized for reasoning-style prompts
   // - openai:gpt-4.1-mini → better suited for generative-style prompts
   // - openai:gpt-5-mini → treat as reasoning-oriented by default
+  // - claude:sonnet-4-0 → excellent for reasoning with extended thinking
   switch (model) {
     case 'openai:gpt-4o-mini':
       return 'reasoning';
     case 'openai:gpt-4.1-mini':
       return 'generative';
+    case 'claude:sonnet-4-0':
+      return 'reasoning';
     case 'openai:gpt-5-mini':
     default:
       return 'reasoning';
   }
+}
+
+// Helper to check if a model supports streaming
+export function modelSupportsStreaming(model: ModelType): boolean {
+  return model === 'claude:sonnet-4-0';
+}
+
+// Helper to check if a model supports extended thinking
+export function modelSupportsThinking(model: ModelType): boolean {
+  return model === 'claude:sonnet-4-0';
+}
+
+// Helper to check if a model supports web search
+export function modelSupportsWebSearch(model: ModelType): boolean {
+  return model === 'claude:sonnet-4-0';
 }

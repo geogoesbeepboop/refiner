@@ -1,4 +1,4 @@
-export type ModelType = 'openai:gpt-4o-mini' | 'openai:gpt-4.1-mini' | 'openai:gpt-5-mini';
+export type ModelType = 'openai:gpt-4o-mini' | 'openai:gpt-4.1-mini' | 'openai:gpt-5-mini' | 'claude:sonnet-4-0';
 export type PromptType = 'generative' | 'reasoning';
 export type OutputFormat = 'markdown' | 'json';
 export type OutputDestination = 'clipboard' | 'file';
@@ -9,9 +9,15 @@ export interface RefinerConfig {
     defaultFormat: OutputFormat;
     defaultOutput: OutputDestination;
     apiKey?: string;
+    claudeApiKey?: string;
     temperature: {
         generative: number;
         reasoning: number;
+    };
+    streaming: {
+        enabled: boolean;
+        showThinking: boolean;
+        thinkingBudgetTokens: number;
     };
 }
 declare class ConfigManager {
@@ -23,8 +29,13 @@ declare class ConfigManager {
     reset(): void;
     getApiKey(): string | undefined;
     setApiKey(apiKey: string): void;
+    getClaudeApiKey(): string | undefined;
+    setClaudeApiKey(apiKey: string): void;
     getTemperature(type: PromptType): number;
 }
 export declare const config: ConfigManager;
 export declare function getPromptTypeForModel(model: ModelType): PromptType;
+export declare function modelSupportsStreaming(model: ModelType): boolean;
+export declare function modelSupportsThinking(model: ModelType): boolean;
+export declare function modelSupportsWebSearch(model: ModelType): boolean;
 export {};
