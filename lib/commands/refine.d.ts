@@ -11,6 +11,8 @@ export default class Refine extends Command {
         format: import("@oclif/core/lib/interfaces").OptionFlag<string | undefined, import("@oclif/core/lib/interfaces").CustomOptions>;
         output: import("@oclif/core/lib/interfaces").OptionFlag<string | undefined, import("@oclif/core/lib/interfaces").CustomOptions>;
         flavor: import("@oclif/core/lib/interfaces").OptionFlag<string | undefined, import("@oclif/core/lib/interfaces").CustomOptions>;
+        'show-thinking': import("@oclif/core/lib/interfaces").BooleanFlag<boolean>;
+        'no-stream': import("@oclif/core/lib/interfaces").BooleanFlag<boolean>;
     };
     run(): Promise<void>;
     private getPromptInput;
