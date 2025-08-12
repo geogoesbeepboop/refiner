@@ -41,8 +41,10 @@ export default class Config extends Command {
     this.log(chalk.gray(`   Default Type: ${current.defaultType}`));
     this.log(chalk.gray(`   Default Format: ${current.defaultFormat}`));
     this.log(chalk.gray(`   Default Output: ${current.defaultOutput}`));
-    this.log(chalk.gray(`   API Key: ${current.apiKey ? 'set (stored securely)' : 'not set'}`));
+    this.log(chalk.gray(`   OpenAI API Key: ${current.apiKey ? 'set (stored securely)' : 'not set'}`));
+    this.log(chalk.gray(`   Claude API Key: ${current.claudeApiKey ? 'set (stored securely)' : 'not set'}`));
     this.log(chalk.gray(`   Temperature (generative/reasoning): ${current.temperature.generative} / ${current.temperature.reasoning}`));
+    this.log(chalk.gray(`   Streaming: ${current.streaming?.enabled ? 'enabled' : 'disabled'}, Show thinking: ${current.streaming?.showThinking ? 'yes' : 'no'}`));
     this.log();
   }
 
@@ -52,7 +54,7 @@ export default class Config extends Command {
     this.log(chalk.blue('\nRefiner Configuration'));
     this.log(chalk.gray('Use arrow keys to pick values. Press enter to confirm.'));
 
-    // Optional API key setup
+    // Optional OpenAI API key setup
     const { setApiKey } = await inquirer.prompt<{ setApiKey: boolean }>([
       {
         type: 'confirm',
@@ -73,7 +75,31 @@ export default class Config extends Command {
         }
       ]);
       config.setApiKey(apiKey.trim());
-      this.log(chalk.green('✅ API key saved.'));
+      this.log(chalk.green('✅ OpenAI API key saved.'));
+    }
+
+    // Optional Claude API key setup
+    const { setClaudeApiKey } = await inquirer.prompt<{ setClaudeApiKey: boolean }>([
+      {
+        type: 'confirm',
+        name: 'setClaudeApiKey',
+        message: current.claudeApiKey ? 'Update Claude API key?' : 'Set Claude API key now?',
+        default: false
+      }
+    ]);
+
+    if (setClaudeApiKey) {
+      const { claudeApiKey } = await inquirer.prompt<{ claudeApiKey: string }>([
+        {
+          type: 'password',
+          name: 'claudeApiKey',
+          mask: '*',
+          message: 'Enter Claude API key (starts with sk-ant-):',
+          validate: (input: string) => input && input.trim().startsWith('sk-ant-') && input.trim().length >= 20 ? true : 'Please enter a valid Claude API key'
+        }
+      ]);
+      config.setClaudeApiKey(claudeApiKey.trim());
+      this.log(chalk.green('✅ Claude API key saved.'));
     }
 
     // Model selection
@@ -83,9 +109,10 @@ export default class Config extends Command {
         name: 'model',
         message: 'Select default model:',
         choices: [
-          { name: 'OpenAI gpt-4o-mini (reasoning-optimized)', value: 'openai:gpt-4o-mini' },
+          { name: 'Claude Sonnet 4.0 (reasoning-optimized, streaming, thinking, web search)', value: 'claude:sonnet-4-0' },
+          { name: 'OpenAI gpt-4o-mini (reasoning-optimized, default model)', value: 'openai:gpt-4o-mini' },
           { name: 'OpenAI gpt-4.1-mini (generative-leaning)', value: 'openai:gpt-4.1-mini' },
-          { name: 'OpenAI gpt-5-mini (advanced, reasoning default)', value: 'openai:gpt-5-mini' }
+          { name: 'OpenAI gpt-5-mini (advanced reasoning, latest model)', value: 'openai:gpt-5-mini' }
         ],
         default: current.defaultModel
       }
@@ -134,11 +161,40 @@ export default class Config extends Command {
       }
     ]);
 
+    // Streaming preferences (only for Claude models)
+    let streamingConfig = current.streaming;
+    if (model === 'claude:sonnet-4-0') {
+      const { enableStreaming } = await inquirer.prompt<{ enableStreaming: boolean }>([
+        {
+          type: 'confirm',
+          name: 'enableStreaming',
+          message: 'Enable streaming for faster response feedback?',
+          default: current.streaming?.enabled ?? true
+        }
+      ]);
+
+      const { showThinking } = await inquirer.prompt<{ showThinking: boolean }>([
+        {
+          type: 'confirm',
+          name: 'showThinking',
+          message: 'Show extended thinking process during generation?',
+          default: current.streaming?.showThinking ?? false
+        }
+      ]);
+
+      streamingConfig = {
+        enabled: enableStreaming,
+        showThinking: showThinking,
+        thinkingBudgetTokens: current.streaming?.thinkingBudgetTokens ?? 16000
+      };
+    }
+
     // Save
     config.set('defaultModel', model);
     config.set('defaultType', type);
     config.set('defaultFormat', format);
     config.set('defaultOutput', output);
+    config.set('streaming', streamingConfig);
 
     this.log(chalk.green('\n✅ Configuration saved.'));
     this.log(chalk.gray('Note: When running "refiner refine" without --type, the prompt type will be auto-selected based on the chosen model.'));

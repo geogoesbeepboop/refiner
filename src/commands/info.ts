@@ -2,6 +2,7 @@ import { Command } from '@oclif/core';
 import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
+import { config, getPromptTypeForModel, modelSupportsStreaming, modelSupportsThinking, modelSupportsWebSearch } from '../utils/config';
 
 export default class Info extends Command {
   static override description = 'Show Refiner product information and available commands';
@@ -60,6 +61,39 @@ export default class Info extends Command {
       this.log(chalk.gray(`   Repo: ${pkg.repository.url}`));
     }
 
+    // Current configuration snapshot
+    const current = config.getAll();
+    const inferredType = getPromptTypeForModel(current.defaultModel);
+    const typeNote = current.defaultType !== inferredType ? ` (auto-inference for model: ${inferredType})` : ' (auto-inference matches)';
+
+    this.log('\n' + chalk.blue('🛠 Current Configuration'));
+    this.log(chalk.gray(`   Default Model: ${current.defaultModel}`));
+    this.log(chalk.gray(`   Default Type: ${current.defaultType}${typeNote}`));
+    this.log(chalk.gray(`   Default Format: ${current.defaultFormat}`));
+    this.log(chalk.gray(`   Default Output: ${current.defaultOutput}`));
+    this.log(chalk.gray(`   OpenAI API Key: ${current.apiKey ? 'set' : 'not set'}`));
+    this.log(chalk.gray(`   Claude API Key: ${current.claudeApiKey ? 'set' : 'not set'}`));
+    this.log(chalk.gray(`   Temperature (generative/reasoning): ${current.temperature.generative} / ${current.temperature.reasoning}`));
+    if (current.streaming) {
+      this.log(chalk.gray(`   Streaming: ${current.streaming.enabled ? 'enabled' : 'disabled'}`));
+      this.log(chalk.gray(`   Show thinking: ${current.streaming.showThinking ? 'yes' : 'no'}`));
+      this.log(chalk.gray(`   Thinking budget (tokens): ${current.streaming.thinkingBudgetTokens}`));
+    }
+
+    // Model capabilities
+    try {
+      const supports = [
+        modelSupportsStreaming(current.defaultModel) ? 'streaming' : null,
+        modelSupportsThinking(current.defaultModel) ? 'thinking' : null,
+        modelSupportsWebSearch(current.defaultModel) ? 'web-search' : null,
+      ].filter(Boolean).join(', ');
+      if (supports) {
+        this.log(chalk.gray(`   Model capabilities: ${supports}`));
+      }
+    } catch {
+      // ignore if helpers not applicable for the model
+    }
+
     // Commands
     if (commandList.length > 0) {
       this.log('\n' + chalk.blue('▶ Available Commands'));
@@ -67,7 +101,6 @@ export default class Info extends Command {
         const hint = cmd === 'refine' ? 'Refine a prompt into structured output' : cmd === 'config' ? 'Configure defaults and API key' : cmd === 'info' ? 'Show this information' : '';
         this.log(chalk.gray(`   • ${cmd}${hint ? ' — ' + hint : ''}`));
       }
-      this.log(chalk.gray(`\nTip: You can also run with ${chalk.white('refiner info')} or alias ${chalk.white('refiner -info')}.`));
     }
 
     this.log();
