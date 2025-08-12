@@ -7,7 +7,10 @@ export interface AnalysisResult {
     flavor: PromptFlavor;
 }
 export declare class PromptAnalyzer {
-    analyzeAndStructure(originalPrompt: string, promptType: PromptType, modelType: ModelType, outputFormat: OutputFormat, flavor: PromptFlavor): Promise<AnalysisResult>;
+    analyzeAndStructure(originalPrompt: string, promptType: PromptType, modelType: ModelType, outputFormat: OutputFormat, flavor: PromptFlavor, options?: {
+        enableStreaming?: boolean;
+        showThinking?: boolean;
+    }): Promise<AnalysisResult>;
     private analyzeGenerativePrompt;
     private analyzeReasoningPrompt;
     regenerateWithContext(result: AnalysisResult, additionalContext: string, modelType: ModelType): Promise<AnalysisResult>;

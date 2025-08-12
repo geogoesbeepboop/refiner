@@ -1,4 +1,6 @@
-import { getAIClient } from './ai-client';
+import { AIClientFactory } from './ai-client-factory';
+import { StreamingLoader } from '../ui/loading';
+import { modelSupportsStreaming } from '../utils/config';
 import { parseAIResponse } from '../utils/json-parser';
 import { ModelType, PromptType, OutputFormat, PromptFlavor } from '../utils/config';
 import { 
@@ -30,13 +32,17 @@ export class PromptAnalyzer {
     promptType: PromptType,
     modelType: ModelType,
     outputFormat: OutputFormat,
-    flavor: PromptFlavor
+    flavor: PromptFlavor,
+    options: {
+      enableStreaming?: boolean;
+      showThinking?: boolean;
+    } = {}
   ): Promise<AnalysisResult> {
     try {
       if (promptType === 'generative') {
-        return await this.analyzeGenerativePrompt(originalPrompt, modelType, outputFormat, flavor);
+        return await this.analyzeGenerativePrompt(originalPrompt, modelType, outputFormat, flavor, options);
       } else {
-        return await this.analyzeReasoningPrompt(originalPrompt, modelType, outputFormat, flavor);
+        return await this.analyzeReasoningPrompt(originalPrompt, modelType, outputFormat, flavor, options);
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -50,17 +56,41 @@ export class PromptAnalyzer {
     originalPrompt: string,
     modelType: ModelType,
     outputFormat: OutputFormat,
-    flavor: PromptFlavor
+    flavor: PromptFlavor,
+    options: {
+      enableStreaming?: boolean;
+      showThinking?: boolean;
+    } = {}
   ): Promise<AnalysisResult> {
     const analysisPrompt = flavor === 'compact' 
       ? GENERATIVE_COMPACT_ANALYSIS_PROMPT 
       : GENERATIVE_DETAILED_ANALYSIS_PROMPT;
 
-    const response = await getAIClient().analyzePrompt(
+    // Set up streaming UI if applicable
+    let streamingLoader: StreamingLoader | undefined;
+    if (modelSupportsStreaming(modelType) && options.enableStreaming) {
+      streamingLoader = new StreamingLoader(options.showThinking);
+    }
+
+    const response = await AIClientFactory.analyzePrompt(
       originalPrompt,
       'generative',
       modelType,
-      analysisPrompt
+      analysisPrompt,
+      {
+        enableStreaming: options.enableStreaming,
+        showThinking: options.showThinking,
+        callbacks: streamingLoader ? {
+          onThinkingStart: () => streamingLoader!.startThinking(),
+          onThinkingDelta: (delta) => streamingLoader!.onThinkingDelta(delta),
+          onWebSearchStart: (query) => streamingLoader!.startWebSearch(query),
+          onWebSearchResults: (count) => streamingLoader!.onWebSearchResults(count),
+          onResponseStart: () => streamingLoader!.startResponse(),
+          onResponseDelta: (delta) => streamingLoader!.onResponseDelta(delta),
+          onComplete: () => streamingLoader!.complete('🎉 Analysis complete!'),
+          onError: (error) => streamingLoader!.fail(`Analysis failed: ${error.message}`)
+        } : undefined
+      }
     );
 
     try {
@@ -99,17 +129,42 @@ export class PromptAnalyzer {
     originalPrompt: string,
     modelType: ModelType,
     outputFormat: OutputFormat,
-    flavor: PromptFlavor
+    flavor: PromptFlavor,
+    options: {
+      enableStreaming?: boolean;
+      showThinking?: boolean;
+    } = {}
   ): Promise<AnalysisResult> {
     const analysisPrompt = flavor === 'compact' 
       ? REASONING_COMPACT_ANALYSIS_PROMPT 
       : REASONING_DETAILED_ANALYSIS_PROMPT;
 
-    const response = await getAIClient().analyzePrompt(
+    // Set up streaming UI if applicable
+    let streamingLoader: StreamingLoader | undefined;
+    if (modelSupportsStreaming(modelType) && options.enableStreaming) {
+      streamingLoader = new StreamingLoader(options.showThinking);
+      streamingLoader.startConnecting();
+    }
+
+    const response = await AIClientFactory.analyzePrompt(
       originalPrompt,
       'reasoning',
       modelType,
-      analysisPrompt
+      analysisPrompt,
+      {
+        enableStreaming: options.enableStreaming,
+        showThinking: options.showThinking,
+        callbacks: streamingLoader ? {
+          onThinkingStart: () => streamingLoader!.startThinking(),
+          onThinkingDelta: (delta) => streamingLoader!.onThinkingDelta(delta),
+          onWebSearchStart: (query) => streamingLoader!.startWebSearch(query),
+          onWebSearchResults: (count) => streamingLoader!.onWebSearchResults(count),
+          onResponseStart: () => streamingLoader!.startResponse(),
+          onResponseDelta: (delta) => streamingLoader!.onResponseDelta(delta),
+          onComplete: () => streamingLoader!.complete('🎉 Analysis complete!'),
+          onError: (error) => streamingLoader!.fail(`Analysis failed: ${error.message}`)
+        } : undefined
+      }
     );
 
     try {
@@ -154,7 +209,7 @@ export class PromptAnalyzer {
         ? (result.flavor === 'compact' ? GENERATIVE_COMPACT_ANALYSIS_PROMPT : GENERATIVE_DETAILED_ANALYSIS_PROMPT)
         : (result.flavor === 'compact' ? REASONING_COMPACT_ANALYSIS_PROMPT : REASONING_DETAILED_ANALYSIS_PROMPT);
 
-      const response = await getAIClient().regenerateWithContext(
+      const response = await AIClientFactory.regenerateWithContext(
         result.originalPrompt,
         result.structuredPrompt,
         additionalContext,
