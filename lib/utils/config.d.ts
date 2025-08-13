@@ -1,4 +1,4 @@
-export type ModelType = 'openai:gpt-4o-mini' | 'openai:gpt-4.1-mini' | 'openai:gpt-5-mini' | 'claude:sonnet-4-0';
+export type ModelType = 'openai:gpt-4o-mini' | 'openai:gpt-4.1-mini' | 'openai:gpt-5-mini' | 'claude:sonnet-4-0' | 'gemini:flash-lite' | 'gemini:flash';
 export type PromptType = 'generative' | 'reasoning';
 export type OutputFormat = 'markdown' | 'json';
 export type OutputDestination = 'clipboard' | 'file';
@@ -10,6 +10,7 @@ export interface RefinerConfig {
     defaultOutput: OutputDestination;
     apiKey?: string;
     claudeApiKey?: string;
+    geminiApiKey?: string;
     temperature: {
         generative: number;
         reasoning: number;
@@ -31,6 +32,8 @@ declare class ConfigManager {
     setApiKey(apiKey: string): void;
     getClaudeApiKey(): string | undefined;
     setClaudeApiKey(apiKey: string): void;
+    getGeminiApiKey(): string | undefined;
+    setGeminiApiKey(apiKey: string): void;
     getTemperature(type: PromptType): number;
 }
 export declare const config: ConfigManager;
