@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.59.0",
+    "@google/generative-ai": "^0.24.1",
     "@oclif/core": "^4.5.2",
     "@oclif/plugin-help": "^6.2.32",
     "chalk": "^5.5.0",

@@ -73,6 +73,7 @@ export default class Info extends Command {
     this.log(chalk.gray(`   Default Output: ${current.defaultOutput}`));
     this.log(chalk.gray(`   OpenAI API Key: ${current.apiKey ? 'set' : 'not set'}`));
     this.log(chalk.gray(`   Claude API Key: ${current.claudeApiKey ? 'set' : 'not set'}`));
+    this.log(chalk.gray(`   Gemini API Key: ${current.geminiApiKey ? 'set' : 'not set'}`));
     this.log(chalk.gray(`   Temperature (generative/reasoning): ${current.temperature.generative} / ${current.temperature.reasoning}`));
     if (current.streaming) {
       this.log(chalk.gray(`   Streaming: ${current.streaming.enabled ? 'enabled' : 'disabled'}`));

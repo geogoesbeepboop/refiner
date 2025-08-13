@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import { config, ModelType, PromptType, OutputDestination, OutputFormat, getPromptTypeForModel } from '../utils/config';
 
 export default class Config extends Command {
-  static override description = 'Configure Refiner defaults (model, type, output format, destination, API key)';
+  static override description = 'Configure Refiner defaults (model, type, output format, destination, API keys)';
 
   static override examples = [
     '$ refiner config',
@@ -43,6 +43,7 @@ export default class Config extends Command {
     this.log(chalk.gray(`   Default Output: ${current.defaultOutput}`));
     this.log(chalk.gray(`   OpenAI API Key: ${current.apiKey ? 'set (stored securely)' : 'not set'}`));
     this.log(chalk.gray(`   Claude API Key: ${current.claudeApiKey ? 'set (stored securely)' : 'not set'}`));
+    this.log(chalk.gray(`   Gemini API Key: ${current.geminiApiKey ? 'set (stored securely)' : 'not set'}`));
     this.log(chalk.gray(`   Temperature (generative/reasoning): ${current.temperature.generative} / ${current.temperature.reasoning}`));
     this.log(chalk.gray(`   Streaming: ${current.streaming?.enabled ? 'enabled' : 'disabled'}, Show thinking: ${current.streaming?.showThinking ? 'yes' : 'no'}`));
     this.log();
@@ -102,6 +103,30 @@ export default class Config extends Command {
       this.log(chalk.green('✅ Claude API key saved.'));
     }
 
+    // Optional Gemini API key setup
+    const { setGeminiApiKey } = await inquirer.prompt<{ setGeminiApiKey: boolean }>([
+      {
+        type: 'confirm',
+        name: 'setGeminiApiKey',
+        message: current.geminiApiKey ? 'Update Gemini API key?' : 'Set Gemini API key now?',
+        default: false
+      }
+    ]);
+
+    if (setGeminiApiKey) {
+      const { geminiApiKey } = await inquirer.prompt<{ geminiApiKey: string }>([
+        {
+          type: 'password',
+          name: 'geminiApiKey',
+          mask: '*',
+          message: 'Enter Gemini API key:',
+          validate: (input: string) => input && input.trim().length >= 20 ? true : 'Please enter a valid Gemini API key'
+        }
+      ]);
+      config.setGeminiApiKey(geminiApiKey.trim());
+      this.log(chalk.green('✅ Gemini API key saved.'));
+    }
+
     // Model selection
     const { model } = await inquirer.prompt<{ model: ModelType }>([
       {
@@ -112,7 +137,9 @@ export default class Config extends Command {
           { name: 'Claude Sonnet 4.0 (reasoning-optimized, streaming, thinking, web search)', value: 'claude:sonnet-4-0' },
           { name: 'OpenAI gpt-4o-mini (reasoning-optimized, default model)', value: 'openai:gpt-4o-mini' },
           { name: 'OpenAI gpt-4.1-mini (generative-leaning)', value: 'openai:gpt-4.1-mini' },
-          { name: 'OpenAI gpt-5-mini (advanced reasoning, latest model)', value: 'openai:gpt-5-mini' }
+          { name: 'OpenAI gpt-5-mini (advanced reasoning, latest model)', value: 'openai:gpt-5-mini' },
+          { name: 'Gemini 2.5 Flash-Lite (fast generative tasks)', value: 'gemini:flash-lite' },
+          { name: 'Gemini 2.5 Flash (balanced reasoning and generative)', value: 'gemini:flash' }
         ],
         default: current.defaultModel
       }
