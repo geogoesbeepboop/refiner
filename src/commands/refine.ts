@@ -15,6 +15,7 @@ export default class Refine extends Command {
     '$ refiner refine "help me build a login system"',
     '$ refiner refine --type=reasoning',
     '$ refiner refine --model=openai:gpt-4.1-mini --format=json',
+    '$ refiner refine --model=gemini:flash --type=generative',
     '$ refiner refine "build an API" --type=reasoning --output=file'
   ];
 
@@ -35,7 +36,7 @@ export default class Refine extends Command {
     model: Flags.string({
       char: 'm', 
       description: 'AI model to use',
-      options: ['claude:sonnet-4-0', 'openai:gpt-4o-mini', 'openai:gpt-4.1-mini', 'openai:gpt-5-mini'],
+      options: ['claude:sonnet-4-0', 'openai:gpt-4o-mini', 'openai:gpt-4.1-mini', 'openai:gpt-5-mini', 'gemini:flash-lite', 'gemini:flash'],
       required: false
     }),
     format: Flags.string({
