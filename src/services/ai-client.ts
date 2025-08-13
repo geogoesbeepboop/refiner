@@ -45,8 +45,7 @@ export class AIClient {
     try {
       const requestParams: any = {
         model: modelName,
-        input: `Original prompt to analyze and restructure:\n\n"${originalPrompt}"`,
-        instructions: systemPrompt,
+        input: `${systemPrompt}\n\nOriginal prompt to analyze and restructure:\n\n"${originalPrompt}"`,
         max_output_tokens: 16000,
       };
 
@@ -57,12 +56,23 @@ export class AIClient {
 
       const response = await this.openai.responses.create(requestParams);
 
-      const content = response.output_text;
-      if (!content) {
+      // Parse response according to Responses API structure
+      const output = response.output?.[0];
+      if (!output || output.type !== 'message') {
+        throw new Error('Invalid response format from AI model');
+      }
+      
+      const content = output.content?.[0];
+      if (!content || content.type !== 'output_text') {
+        throw new Error('No text content in AI model response');
+      }
+      
+      const text = content.text;
+      if (!text) {
         throw new Error('No response received from AI model');
       }
 
-      return content;
+      return text;
     } catch (error) {
       if (error instanceof Error) {
         // Handle specific OpenAI API errors
@@ -113,8 +123,7 @@ REQUIREMENT: The regenerated prompt must be notably different, more comprehensiv
     try {
       const requestParams: any = {
         model: modelName,
-        input: regenerationPrompt,
-        instructions: systemPrompt,
+        input: `${systemPrompt}\n\n${regenerationPrompt}`,
         max_output_tokens: 16000,
       };
 
@@ -125,12 +134,23 @@ REQUIREMENT: The regenerated prompt must be notably different, more comprehensiv
 
       const response = await this.openai.responses.create(requestParams);
 
-      const content = response.output_text;
-      if (!content) {
+      // Parse response according to Responses API structure
+      const output = response.output?.[0];
+      if (!output || output.type !== 'message') {
+        throw new Error('Invalid response format from AI model during regeneration');
+      }
+      
+      const content = output.content?.[0];
+      if (!content || content.type !== 'output_text') {
+        throw new Error('No text content in AI model response during regeneration');
+      }
+      
+      const text = content.text;
+      if (!text) {
         throw new Error('No response received from AI model during regeneration');
       }
 
-      return content;
+      return text;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`AI API Error during regeneration: ${error.message}`);

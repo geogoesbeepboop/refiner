@@ -15,7 +15,7 @@ import { config as dotenvConfig } from 'dotenv';
   }
 })();
 
-export type ModelType = 'openai:gpt-4o-mini' | 'openai:gpt-4.1-mini' | 'openai:gpt-5-mini' | 'claude:sonnet-4-0';
+export type ModelType = 'openai:gpt-4o-mini' | 'openai:gpt-4.1-mini' | 'openai:gpt-5-mini' | 'claude:sonnet-4-0' | 'gemini:flash-lite' | 'gemini:flash';
 export type PromptType = 'generative' | 'reasoning';
 export type OutputFormat = 'markdown' | 'json';
 export type OutputDestination = 'clipboard' | 'file';
@@ -28,6 +28,7 @@ export interface RefinerConfig {
   defaultOutput: OutputDestination;
   apiKey?: string;
   claudeApiKey?: string;
+  geminiApiKey?: string;
   temperature: {
     generative: number;
     reasoning: number;
@@ -81,6 +82,7 @@ class ConfigManager {
       defaultOutput: this.get('defaultOutput'),
       apiKey: this.get('apiKey'),
       claudeApiKey: this.get('claudeApiKey'),
+      geminiApiKey: this.get('geminiApiKey'),
       temperature: this.get('temperature'),
       streaming: this.get('streaming')
     };
@@ -106,6 +108,14 @@ class ConfigManager {
     this.set('claudeApiKey', apiKey);
   }
 
+  getGeminiApiKey(): string | undefined {
+    return this.get('geminiApiKey') || process.env.GEMINI_API_KEY;
+  }
+
+  setGeminiApiKey(apiKey: string): void {
+    this.set('geminiApiKey', apiKey);
+  }
+
   getTemperature(type: PromptType): number {
     const temps = this.get('temperature');
     return temps[type];
@@ -121,12 +131,18 @@ export function getPromptTypeForModel(model: ModelType): PromptType {
   // - openai:gpt-4.1-mini → better suited for generative-style prompts
   // - openai:gpt-5-mini → treat as reasoning-oriented by default
   // - claude:sonnet-4-0 → excellent for reasoning with extended thinking
+  // - gemini:flash-lite → optimized for fast generative tasks
+  // - gemini:flash → balanced for both reasoning and generative tasks
   switch (model) {
     case 'openai:gpt-4o-mini':
       return 'reasoning';
     case 'openai:gpt-4.1-mini':
       return 'generative';
     case 'claude:sonnet-4-0':
+      return 'reasoning';
+    case 'gemini:flash-lite':
+      return 'generative';
+    case 'gemini:flash':
       return 'reasoning';
     case 'openai:gpt-5-mini':
     default:
