@@ -1,6 +1,7 @@
 import { ModelType, PromptType } from '../utils/config';
 import { OpenAIClient, getOpenAIClient } from './openai-client';
 import { ClaudeClient, getClaudeClient, StreamingCallbacks } from './claude-client';
+import { GoogleClient, getGoogleClient } from './google-client';
 
 export interface AIClientInterface {
   analyzePrompt(
@@ -28,6 +29,8 @@ export class AIClientFactory {
       return getClaudeClient();
     } else if (modelType.startsWith('openai:')) {
       return getOpenAIClient();
+    } else if (modelType.startsWith('gemini:')) {
+      return getGoogleClient();
     } else {
       throw new Error(`Unsupported model type: ${modelType}`);
     }
