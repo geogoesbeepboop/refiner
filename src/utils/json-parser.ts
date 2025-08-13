@@ -55,6 +55,99 @@ function extractJsonFromText(text: string): string | null {
   return null;
 }
 
+function repairCommonJSONIssues(jsonStr: string): string {
+  let repaired = jsonStr.trim();
+  
+  // More robust comma fixing - handle various line ending scenarios
+  // Fix missing commas between string properties
+  repaired = repaired.replace(/(")\s*\n\s*"/g, '$1,\n  "');
+  
+  // Fix missing commas after string values before closing braces
+  repaired = repaired.replace(/(")\s*\n\s*(\})/g, '$1$2');
+  
+  // Fix missing commas after closing braces/brackets before new properties
+  repaired = repaired.replace(/(\}|\])\s*\n\s*"/g, '$1,\n  "');
+  
+  // Fix missing commas after arrays before new properties
+  repaired = repaired.replace(/(\])\s*\n\s*"/g, '$1,\n  "');
+  
+  // Fix missing commas after nested objects
+  repaired = repaired.replace(/(\})\s*\n\s*"/g, '$1,\n  "');
+  
+  // More sophisticated approach - parse character by character
+  let result = '';
+  let inString = false;
+  let escapeNext = false;
+  let openBraces = 0;
+  let openBrackets = 0;
+  let lastNonWhitespaceChar = '';
+  let lastNonWhitespaceIndex = -1;
+  
+  for (let i = 0; i < repaired.length; i++) {
+    const char = repaired[i];
+    const nextChar = i < repaired.length - 1 ? repaired[i + 1] : '';
+    
+    if (escapeNext) {
+      result += char;
+      escapeNext = false;
+      continue;
+    }
+    
+    if (inString) {
+      if (char === '\\') {
+        escapeNext = true;
+      } else if (char === '"') {
+        inString = false;
+        lastNonWhitespaceChar = char;
+        lastNonWhitespaceIndex = result.length;
+      }
+      result += char;
+      continue;
+    }
+    
+    // Not in string
+    if (char === '"') {
+      inString = true;
+      // Check if we need a comma before this quote
+      if (lastNonWhitespaceChar && 
+          (lastNonWhitespaceChar === '"' || lastNonWhitespaceChar === '}' || lastNonWhitespaceChar === ']') &&
+          result.slice(lastNonWhitespaceIndex).match(/^\s*$/)) {
+        result = result.slice(0, lastNonWhitespaceIndex + 1) + ',' + result.slice(lastNonWhitespaceIndex + 1);
+      }
+    } else if (char === '{') {
+      openBraces++;
+    } else if (char === '}') {
+      openBraces--;
+    } else if (char === '[') {
+      openBrackets++;
+    } else if (char === ']') {
+      openBrackets--;
+    }
+    
+    if (char.trim()) {
+      lastNonWhitespaceChar = char;
+      lastNonWhitespaceIndex = result.length;
+    }
+    
+    result += char;
+  }
+  
+  // Handle incomplete JSON - add missing closing braces and brackets
+  while (openBraces > 0) {
+    result = result.replace(/,\s*$/, '') + '\n}';
+    openBraces--;
+  }
+  while (openBrackets > 0) {
+    result = result.replace(/,\s*$/, '') + '\n]';
+    openBrackets--;
+  }
+  
+  // Final cleanup - remove trailing commas before closing braces/brackets
+  result = result.replace(/,(\s*[\}\]])/g, '$1');
+  
+  return result;
+}
+
 export function parseAIResponse(response: string): any {
   const trimmed = response.trim();
 
@@ -69,8 +162,19 @@ export function parseAIResponse(response: string): any {
     try {
       return JSON.parse(extracted);
     } catch (error) {
-      console.error('Failed to parse extracted JSON:', extracted);
-      throw new Error(`JSON parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Try to repair common JSON issues before giving up
+      try {
+        const repaired = repairCommonJSONIssues(extracted);
+        console.log('Attempting to repair JSON...');
+        return JSON.parse(repaired);
+      } catch (repairError) {
+        console.error('Failed to parse extracted JSON:', extracted.substring(0, 500) + '...');
+        const repairedAttempt = repairCommonJSONIssues(extracted);
+        console.error('Failed to repair JSON:', repairedAttempt.substring(0, 500) + '...');
+        console.error('Original error:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('Repair error:', repairError instanceof Error ? repairError.message : 'Unknown repair error');
+        throw new Error(`JSON parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
   }
 
